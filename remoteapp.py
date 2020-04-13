@@ -118,19 +118,24 @@ def get_auth_info(args):
         "password": password,
     }
 
-
-if __name__ == "__main__":
-    ARGS = create_arguments()
-    AUTH = get_auth_info(ARGS)
-    SESSION = requests.Session()
-    SESSION.auth = HttpNtlmAuth(AUTH["user"], AUTH["password"])
-    RESPONSE = SESSION.get(ARGS.url)
-    COOKIE = {".ASPXAUTH": RESPONSE.text}
-    RESPONSE = SESSION.get(ARGS.url, cookies=COOKIE)
-    ROOT = ElementTree.fromstring(RESPONSE.text)
+def main():
+    """
+    The main function
+    """
+    args = create_arguments()
+    auth = get_auth_info(args)
+    session = requests.Session()
+    session.auth = HttpNtlmAuth(auth["user"], auth["password"])
+    response = session.get(args.url)
+    cookie = {".ASPXauth": response.text}
+    response = session.get(args.url, cookies=cookie)
+    root = ElementTree.fromstring(response.text)
     os.makedirs(RDP_FILES_PATH, exist_ok=True)
-    for item in ROOT.findall("./{*}Publisher/{*}Resources/{*}Resource"):
+    for item in root.findall("./{*}Publisher/{*}Resources/{*}Resource"):
         parsed_resource = parse_resource(item)
         for terminal_server in parsed_resource["terminal_servers"]:
-            rdp_file_path = download_rdp(COOKIE, terminal_server)
-            generate_desktop(parsed_resource, rdp_file_path)
+            rdp_file = download_rdp(cookie, terminal_server)
+            generate_desktop(parsed_resource, rdp_file)
+
+if __name__ == "__main__":
+    main()
